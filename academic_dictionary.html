@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Lexicon - 个人学术英语词典</title>
+    <!-- Tailwind CSS & FontAwesome Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 3D Flashcard Flip Effect */
+        .flip-card {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-200">
+
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 px-4 lg:px-8 py-3.5 transition-colors">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- App Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i class="fa-solid font-bold text-lg fa-book-bookmark"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight font-serif text-slate-900 dark:text-white leading-none">Academic Lexicon</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">个人学术英语词汇库 & 闪卡复习系统</p>
+                </div>
+            </div>
+
+            <!-- Global Navigation & Action Bar -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="nav-dictionary-btn" onclick="switchView('dictionary')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 transition flex items-center gap-2 border border-brand-200 dark:border-brand-700/50">
+                    <i class="fa-solid fa-list-ul"></i>
+                    <span class="hidden sm:inline">词典列表</span>
+                </button>
+                <button id="nav-flashcard-btn" onclick="switchView('flashcards')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition flex items-center gap-2 border border-transparent">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span class="hidden sm:inline">闪卡复习</span>
+                </button>
+                
+                <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 my-auto mx-1"></div>
+
+                <button onclick="openAddModal()" class="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>新增词汇</span>
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg transition" title="切换暗黑模式">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <div class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-1 flex flex-col gap-6">
+
+        <!-- VIEW 1: DICTIONARY MANAGEMENT VIEW -->
+        <main id="view-dictionary" class="flex-1 flex flex-col gap-6">
+            
+            <!-- Filter & Search Control Bar -->
+            <section class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700/70 flex flex-col md:flex-row gap-3 justify-between items-center transition-colors">
+                
+                <!-- Search Input -->
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="handleSearch()" placeholder="搜索单词、学术释义、搭配..." class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+                </div>
+
+                <!-- Filters Group -->
+                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
+                    <!-- Category Filter -->
+                    <select id="filter-category" onchange="applyFilters()" class="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="ALL">全部学术领域 (All Categories)</option>
+                    </select>
+
+                    <!-- Mastery Status Filter -->
+                    <select id="filter-status" onchange="applyFilters()" class="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="ALL">全部掌握状态</option>
+                        <option value="Learning">🔴 学习中 (Learning)</option>
+                        <option value="Reviewing">🟡 复习中 (Reviewing)</option>
+                        <option value="Mastered">🟢 已掌握 (Mastered)</option>
+                    </select>
+
+                    <!-- Tools Dropdown -->
+                    <div class="relative inline-block text-left">
+                        <button onclick="toggleToolsMenu()" class="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition" title="数据与工具">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <div id="tools-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1.5 z-20 text-sm">
+                            <button onclick="exportDataJSON()" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                <i class="fa-solid fa-download text-xs"></i> 导出 JSON 备份
+                            </button>
+                            <button onclick="exportDataCSV()" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                <i class="fa-solid fa-file-csv text-xs"></i> 导出 CSV 表格
+                            </button>
+                            <label class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-upload text-xs"></i> 导入数据备份
+                                <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+                            </label>
+                            <hr class="my-1 border-slate-100 dark:border-slate-700">
+                            <button onclick="openCategoryManagerModal()" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                <i class="fa-solid fa-tags text-xs"></i> 管理学术类别
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Dashboard Statistics Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">学术词汇总数</p>
+                        <p id="stat-total" class="text-xl font-bold text-slate-800 dark:text-white mt-0.5">0</p>
+                    </div>
+                    <span class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm"><i class="fa-solid fa-book"></i></span>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">🔴 学习中</p>
+                        <p id="stat-learning" class="text-xl font-bold text-red-600 dark:text-red-400 mt-0.5">0</p>
+                    </div>
+                    <span class="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center text-sm"><i class="fa-solid fa-fire"></i></span>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">🟡 复习中</p>
+                        <p id="stat-reviewing" class="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">0</p>
+                    </div>
+                    <span class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-rotate-right"></i></span>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">🟢 已掌握</p>
+                        <p id="stat-mastered" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">0</p>
+                    </div>
+                    <span class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-circle-check"></i></span>
+                </div>
+            </div>
+
+            <!-- Words Grid Output -->
+            <div id="words-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamically populated word cards -->
+            </div>
+
+            <!-- Empty Search Results Placeholder -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 my-4">
+                <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center text-slate-400 dark:text-slate-500 text-2xl mb-3">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <h3 class="text-base font-semibold text-slate-700 dark:text-slate-200">没有找到匹配的学术词汇</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-sm mt-1">尝试调整搜索关键词、筛选条件或点击上方按钮新增词汇。</p>
+                <button onclick="openAddModal()" class="mt-4 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition">新增学术词汇</button>
+            </div>
+
+        </main>
+
+        <!-- VIEW 2: FLASHCARD REVIEW MODE -->
+        <main id="view-flashcards" class="hidden flex-1 flex-col items-center justify-center py-4">
+            
+            <div class="w-full max-w-xl flex flex-col gap-5">
+                
+                <!-- Flashcard Control Header -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold font-serif text-slate-900 dark:text-white">沉浸式学术闪卡复习</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">点击卡片翻面查看考点，测试掌握情况</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="flashcard-filter" onchange="initFlashcards()" class="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300">
+                            <option value="ALL">复习全部词库</option>
+                            <option value="Learning" selected>优先复习：🔴 学习中</option>
+                            <option value="Reviewing">优先复习：🟡 复习中</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Review Progress Bar -->
+                <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                    <div id="flashcard-progress" class="bg-brand-600 h-full w-0 transition-all duration-300"></div>
+                </div>
+
+                <!-- Interactive Flip Card Container -->
+                <div id="flashcard-box" class="flip-card w-full h-[380px] cursor-pointer" onclick="flipCard()">
+                    <div id="flashcard-inner" class="flip-card-inner relative w-full h-full">
+                        
+                        <!-- Front Side (Word Front) -->
+                        <div class="flip-card-front absolute inset-0 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md p-8 flex flex-col justify-between items-center text-center">
+                            <div class="w-full flex justify-between items-center text-xs text-slate-400">
+                                <span id="fc-category" class="bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 font-medium">Category</span>
+                                <span id="fc-count">1 / 10</span>
+                            </div>
+                            
+                            <div class="my-auto">
+                                <span id="fc-pos" class="italic font-serif text-brand-600 dark:text-brand-400 text-base mb-1 block">part of speech</span>
+                                <h2 id="fc-word" class="text-4xl font-bold font-serif text-slate-900 dark:text-white tracking-wide">Word</h2>
+                                <p class="text-xs text-slate-400 mt-4"><i class="fa-solid fa-rotate text-brand-500 mr-1"></i> 点击任意位置翻转卡片</p>
+                            </div>
+
+                            <div class="w-full text-xs text-slate-400 border-t border-slate-100 dark:border-slate-700/60 pt-3">
+                                提示：请先在脑海中回忆该词的学术释义与常用搭配
+                            </div>
+                        </div>
+
+                        <!-- Back Side (Academic Details Back) -->
+                        <div class="flip-card-back absolute inset-0 bg-slate-900 text-white dark:bg-slate-800 rounded-2xl border border-slate-800 dark:border-slate-700 shadow-md p-6 flex flex-col justify-between text-left overflow-y-auto">
+                            <div>
+                                <div class="flex justify-between items-start mb-3 border-b border-slate-800 dark:border-slate-700/80 pb-2">
+                                    <div>
+                                        <h3 id="fc-back-word" class="text-xl font-bold font-serif text-brand-400">Word</h3>
+                                        <p id="fc-back-pos" class="text-xs text-slate-400 italic">v.</p>
+                                    </div>
+                                    <span id="fc-back-status" class="text-xs px-2 py-0.5 rounded border border-slate-700">Status</span>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">学术释义 (Academic Definition)</p>
+                                        <p id="fc-meaning" class="text-sm font-medium text-slate-200">Definition goes here...</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-[11px] font-semibold text-amber-400/90 uppercase tracking-wider mb-0.5">常用搭配 (Academic Collocation)</p>
+                                        <p id="fc-collocation" class="text-sm text-amber-300 font-mono bg-slate-800/80 px-2.5 py-1 rounded border border-slate-700/50">Collocation...</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">论文语境例句 (Example Sentence)</p>
+                                        <p id="fc-example" class="text-sm italic text-slate-300 font-serif border-l-2 border-brand-500 pl-2.5 py-0.5">Example sentence...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-xs text-slate-500 text-center mt-2">
+                                点击非按钮区域可重新翻回正面
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Review Self-Assessment Buttons -->
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button onclick="markFlashcard('Need Review', event)" class="py-3 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-xmark"></i> 还需要复习 (Need Review)
+                    </button>
+                    <button onclick="markFlashcard('Got it', event)" class="py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check"></i> 掌握良好 (Got it)
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Review Complete Screen -->
+            <div id="fc-empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+                <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mb-3">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">太棒了！本轮闪卡复习已完成</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm">所选分类下的学术词汇卡片已全部背诵完毕。</p>
+                <button onclick="initFlashcards()" class="mt-4 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition">开启新一轮复习</button>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- Add / Edit Word Modal -->
+    <div id="word-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-700">
+                <h3 id="modal-title" class="text-lg font-bold text-slate-900 dark:text-white font-serif">新增学术词汇</h3>
+                <button onclick="closeWordModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="word-form" onsubmit="saveWord(event)" class="mt-4 space-y-4">
+                <input type="hidden" id="word-id">
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">单词 (Word) *</label>
+                        <input type="text" id="form-word" required placeholder="例如: Empirical" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">词性 (PoS) *</label>
+                        <select id="form-pos" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="v.">v. (动词)</option>
+                            <option value="n.">n. (名词)</option>
+                            <option value="adj.">adj. (形容词)</option>
+                            <option value="adv.">adv. (副词)</option>
+                            <option value="phrase">phrase (短语)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">学术场景领域 *</label>
+                        <select id="form-category" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">掌握程度 *</label>
+                        <select id="form-status" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Learning">🔴 学习中 (Learning)</option>
+                            <option value="Reviewing">🟡 复习中 (Reviewing)</option>
+                            <option value="Mastered">🟢 已掌握 (Mastered)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">学术精准释义 (Academic Definition) *</label>
+                    <textarea id="form-meaning" required rows="2" placeholder="基于经验或实验的；实证的（非纯理论的）" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">学术常用固定搭配 (Academic Collocation)</label>
+                    <input type="text" id="form-collocation" placeholder="例如: empirical evidence / empirical study" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">论文语境例句 (Example Sentence)</label>
+                    <textarea id="form-example" rows="2" placeholder="This research relies on empirical evidence gathered over two years." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 font-serif"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeWordModal()" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">取消</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg shadow-sm transition">保存词汇条目</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category Manager Modal -->
+    <div id="category-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-700">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white font-serif">管理学术领域分类</h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="mt-4 space-y-3">
+                <div class="flex gap-2">
+                    <input type="text" id="new-category-input" placeholder="输入自定义学术分类名称..." class="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <button onclick="addCategory()" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition">添加分类</button>
+                </div>
+
+                <div id="category-list" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-60 overflow-y-auto pt-2">
+                    <!-- Dynamic categories item list -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Academic Categories & High-Frequency Words
+        const DEFAULT_CATEGORIES = [
+            "Essay Writing & Argumentation",
+            "Research & Methodology",
+            "Analysis, Critique & Limitations"
+        ];
+
+        const DEFAULT_WORDS = [
+            {
+                id: "1",
+                word: "Substantiate",
+                pos: "v.",
+                category: "Essay Writing & Argumentation",
+                meaning: "提供事实/经验/数据以证实，证明（观点或假设）",
+                collocation: "substantiate a claim / hypothesis / theory",
+                example: "The researchers gathered qualitative data to substantiate their primary thesis.",
+                status: "Learning",
+                updatedAt: Date.now()
+            },
+            {
+                id: "2",
+                word: "Empirical",
+                pos: "adj.",
+                category: "Research & Methodology",
+                meaning: "以经验/实验/数据为依据的（非纯理论推导的）",
+                collocation: "empirical evidence / empirical research",
+                example: "There is substantial empirical evidence supporting the proposed economic model.",
+                status: "Reviewing",
+                updatedAt: Date.now()
+            },
+            {
+                id: "3",
+                word: "Delineate",
+                pos: "v.",
+                category: "Research & Methodology",
+                meaning: "清晰地勾勒，明确界定，详细阐明",
+                collocation: "delineate the scope / boundaries of study",
+                example: "The methodology chapter clearly delineates how survey data was collected.",
+                status: "Learning",
+                updatedAt: Date.now()
+            },
+            {
+                id: "4",
+                word: "Plausible",
+                pos: "adj.",
+                category: "Analysis, Critique & Limitations",
+                meaning: "貌似合理的，解释得通的，切合实际的",
+                collocation: "plausible explanation / plausible alternative",
+                example: "The author offered a plausible explanation for the unexpected experimental anomalies.",
+                status: "Reviewing",
+                updatedAt: Date.now()
+            },
+            {
+                id: "5",
+                word: "Caveat",
+                pos: "n.",
+                category: "Analysis, Critique & Limitations",
+                meaning: "限制条件，需要特别注意或警惕的事项",
+                collocation: "with the caveat that...",
+                example: "These statistical conclusions are useful, with the caveat that the sample size was small.",
+                status: "Learning",
+                updatedAt: Date.now()
+            },
+            {
+                id: "6",
+                word: "Paradigm",
+                pos: "n.",
+                category: "Research & Methodology",
+                meaning: "范式，典范，常规模式，学术框架",
+                collocation: "paradigm shift / dominant paradigm",
+                example: "The discovery of quantum physics marked a major paradigm shift in science.",
+                status: "Mastered",
+                updatedAt: Date.now()
+            },
+            {
+                id: "7",
+                word: "Elucidate",
+                pos: "v.",
+                category: "Essay Writing & Argumentation",
+                meaning: "阐明，解释，使（复杂逻辑）更加清晰",
+                collocation: "elucidate the mechanisms / relationship",
+                example: "Further empirical studies are needed to elucidate the underlying cognitive processes.",
+                status: "Reviewing",
+                updatedAt: Date.now()
+            }
+        ];
+
+        // Global State
+        let categories = [];
+        let words = [];
+        let flashcardIndex = 0;
+        let currentFlashcards = [];
+
+        // Application OnLoad Entry
+        window.onload = function() {
+            loadStoredData();
+            renderCategories();
+            renderStats();
+            renderWords();
+            setupOutsideClickHandlers();
+        };
+
+        function loadStoredData() {
+            const storedCat = localStorage.getItem('academic_lexicon_cats');
+            const storedWords = localStorage.getItem('academic_lexicon_words');
+
+            categories = storedCat ? JSON.parse(storedCat) : [...DEFAULT_CATEGORIES];
+            words = storedWords ? JSON.parse(storedWords) : [...DEFAULT_WORDS];
+
+            saveDataToStorage();
+        }
+
+        function saveDataToStorage() {
+            localStorage.setItem('academic_lexicon_cats', JSON.stringify(categories));
+            localStorage.setItem('academic_lexicon_words', JSON.stringify(words));
+        }
+
+        // View Navigation Handler
+        function switchView(view) {
+            const dictView = document.getElementById('view-dictionary');
+            const fcView = document.getElementById('view-flashcards');
+            const dictBtn = document.getElementById('nav-dictionary-btn');
+            const fcBtn = document.getElementById('nav-flashcard-btn');
+
+            if (view === 'dictionary') {
+                dictView.classList.remove('hidden');
+                dictView.classList.add('flex');
+                fcView.classList.add('hidden');
+                fcView.classList.remove('flex');
+
+                dictBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 transition flex items-center gap-2 border border-brand-200 dark:border-brand-700/50";
+                fcBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition flex items-center gap-2 border border-transparent";
+            } else {
+                fcView.classList.remove('hidden');
+                fcView.classList.add('flex');
+                dictView.classList.add('hidden');
+                dictView.classList.remove('flex');
+
+                fcBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 transition flex items-center gap-2 border border-brand-200 dark:border-brand-700/50";
+                dictBtn.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition flex items-center gap-2 border border-transparent";
+
+                initFlashcards();
+            }
+        }
+
+        function renderWords() {
+            const container = document.getElementById('words-container');
+            const emptyState = document.getElementById('empty-state');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            const catFilter = document.getElementById('filter-category').value;
+            const statusFilter = document.getElementById('filter-status').value;
+
+            // Search and filtering logic
+            const filtered = words.filter(w => {
+                const matchesSearch = w.word.toLowerCase().includes(searchTerm) ||
+                                      w.meaning.toLowerCase().includes(searchTerm) ||
+                                      (w.collocation && w.collocation.toLowerCase().includes(searchTerm));
+                const matchesCat = catFilter === 'ALL' || w.category === catFilter;
+                const matchesStatus = statusFilter === 'ALL' || w.status === statusFilter;
+
+                return matchesSearch && matchesCat && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            container.innerHTML = filtered.map(w => {
+                const statusBadge = getStatusBadge(w.status);
+                return `
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700/70 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                    <div>
+                        <!-- Header Line -->
+                        <div class="flex justify-between items-start gap-2 mb-2">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-xl font-bold font-serif text-slate-900 dark:text-white">${escapeHtml(w.word)}</h3>
+                                    <span class="text-xs font-serif italic text-brand-600 dark:text-brand-400 font-medium">${escapeHtml(w.pos)}</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5"><i class="fa-solid fa-tag text-[10px] mr-1"></i>${escapeHtml(w.category)}</p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+
+                        <!-- Meaning -->
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 mt-3 leading-snug">${escapeHtml(w.meaning)}</p>
+
+                        <!-- Academic Collocation -->
+                        ${w.collocation ? `
+                        <div class="mt-3 bg-amber-500/10 dark:bg-amber-500/5 rounded-lg px-2.5 py-1.5 border border-amber-500/20">
+                            <p class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Academic Collocation</p>
+                            <p class="text-xs font-mono text-amber-900 dark:text-amber-200 font-medium mt-0.5">${escapeHtml(w.collocation)}</p>
+                        </div>
+                        ` : ''}
+
+                        <!-- Example Sentence -->
+                        ${w.example ? `
+                        <p class="text-xs italic text-slate-500 dark:text-slate-400 font-serif mt-3 border-l-2 border-slate-300 dark:border-slate-600 pl-2.5 py-0.5">"${escapeHtml(w.example)}"</p>
+                        ` : ''}
+                    </div>
+
+                    <!-- Footer Quick Status Switcher & Actions -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <select onchange="updateWordStatus('${w.id}', this.value)" class="text-xs bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-slate-600 dark:text-slate-300">
+                            <option value="Learning" ${w.status === 'Learning' ? 'selected' : ''}>🔴 学习中</option>
+                            <option value="Reviewing" ${w.status === 'Reviewing' ? 'selected' : ''}>🟡 复习中</option>
+                            <option value="Mastered" ${w.status === 'Mastered' ? 'selected' : ''}>🟢 已掌握</option>
+                        </select>
+
+                        <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                            <button onclick="openEditModal('${w.id}')" class="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 text-xs rounded transition" title="编辑条目">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteWord('${w.id}')" class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-xs rounded transition" title="删除条目">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'Learning') {
+                return `<span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/50">🔴 学习中</span>`;
+            } else if (status === 'Reviewing') {
+                return `<span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">🟡 复习中</span>`;
+            } else {
+                return `<span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">🟢 已掌握</span>`;
+            }
+        }
+
+        function renderStats() {
+            document.getElementById('stat-total').innerText = words.length;
+            document.getElementById('stat-learning').innerText = words.filter(w => w.status === 'Learning').length;
+            document.getElementById('stat-reviewing').innerText = words.filter(w => w.status === 'Reviewing').length;
+            document.getElementById('stat-mastered').innerText = words.filter(w => w.status === 'Mastered').length;
+        }
+
+        function renderCategories() {
+            const filterSelect = document.getElementById('filter-category');
+            const formSelect = document.getElementById('form-category');
+
+            const optionsHtml = categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+            filterSelect.innerHTML = `<option value="ALL">全部学术领域 (All Categories)</option>` + optionsHtml;
+            formSelect.innerHTML = optionsHtml;
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').innerText = "新增学术词汇条目";
+            document.getElementById('word-id').value = "";
+            document.getElementById('word-form').reset();
+            document.getElementById('word-modal').classList.remove('hidden');
+        }
+
+        function openEditModal(id) {
+            const wordObj = words.find(w => w.id === id);
+            if (!wordObj) return;
+
+            document.getElementById('modal-title').innerText = "编辑学术词汇条目";
+            document.getElementById('word-id').value = wordObj.id;
+            document.getElementById('form-word').value = wordObj.word;
+            document.getElementById('form-pos').value = wordObj.pos;
+            document.getElementById('form-category').value = wordObj.category;
+            document.getElementById('form-status').value = wordObj.status;
+            document.getElementById('form-meaning').value = wordObj.meaning;
+            document.getElementById('form-collocation').value = wordObj.collocation || "";
+            document.getElementById('form-example').value = wordObj.example || "";
+
+            document.getElementById('word-modal').classList.remove('hidden');
+        }
+
+        function closeWordModal() {
+            document.getElementById('word-modal').classList.add('hidden');
+        }
+
+        function saveWord(e) {
+            e.preventDefault();
+            const id = document.getElementById('word-id').value;
+            const word = document.getElementById('form-word').value.trim();
+            const pos = document.getElementById('form-pos').value;
+            const category = document.getElementById('form-category').value;
+            const status = document.getElementById('form-status').value;
+            const meaning = document.getElementById('form-meaning').value.trim();
+            const collocation = document.getElementById('form-collocation').value.trim();
+            const example = document.getElementById('form-example').value.trim();
+
+            if (!word || !meaning) return;
+
+            if (id) {
+                const index = words.findIndex(w => w.id === id);
+                if (index !== -1) {
+                    words[index] = { ...words[index], word, pos, category, status, meaning, collocation, example, updatedAt: Date.now() };
+                }
+            } else {
+                const newObj = {
+                    id: Date.now().toString(),
+                    word, pos, category, status, meaning, collocation, example,
+                    updatedAt: Date.now()
+                };
+                words.unshift(newObj);
+            }
+
+            saveDataToStorage();
+            renderStats();
+            renderWords();
+            closeWordModal();
+        }
+
+        function updateWordStatus(id, newStatus) {
+            const wordObj = words.find(w => w.id === id);
+            if (wordObj) {
+                wordObj.status = newStatus;
+                saveDataToStorage();
+                renderStats();
+                renderWords();
+            }
+        }
+
+        function deleteWord(id) {
+            words = words.filter(w => w.id !== id);
+            saveDataToStorage();
+            renderStats();
+            renderWords();
+        }
+
+        function handleSearch() {
+            renderWords();
+        }
+
+        function applyFilters() {
+            renderWords();
+        }
+
+        // Flashcards Engine
+        function initFlashcards() {
+            const filterVal = document.getElementById('flashcard-filter').value;
+            const box = document.getElementById('flashcard-box');
+            const emptyState = document.getElementById('fc-empty-state');
+
+            if (filterVal === 'ALL') {
+                currentFlashcards = [...words];
+            } else {
+                currentFlashcards = words.filter(w => w.status === filterVal);
+            }
+
+            // Shuffle cards
+            currentFlashcards.sort(() => Math.random() - 0.5);
+
+            flashcardIndex = 0;
+
+            if (currentFlashcards.length === 0) {
+                box.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                box.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+                showFlashcard();
+            }
+        }
+
+        function showFlashcard() {
+            const fcCard = document.getElementById('flashcard-box');
+            fcCard.classList.remove('flipped'); // Reset card side
+
+            if (flashcardIndex >= currentFlashcards.length) {
+                document.getElementById('flashcard-box').classList.add('hidden');
+                const emptyState = document.getElementById('fc-empty-state');
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            }
+
+            const item = currentFlashcards[flashcardIndex];
+
+            // Update Progress Bar
+            const percent = ((flashcardIndex) / currentFlashcards.length) * 100;
+            document.getElementById('flashcard-progress').style.width = `${percent}%`;
+
+            // Front
+            document.getElementById('fc-category').innerText = item.category;
+            document.getElementById('fc-count').innerText = `${flashcardIndex + 1} / ${currentFlashcards.length}`;
+            document.getElementById('fc-word').innerText = item.word;
+            document.getElementById('fc-pos').innerText = item.pos;
+
+            // Back
+            document.getElementById('fc-back-word').innerText = item.word;
+            document.getElementById('fc-back-pos').innerText = item.pos;
+            document.getElementById('fc-back-status').innerText = item.status;
+            document.getElementById('fc-meaning').innerText = item.meaning;
+            document.getElementById('fc-collocation').innerText = item.collocation || "无专属搭配记录";
+            document.getElementById('fc-example').innerText = item.example ? `"${item.example}"` : "无专属语境例句";
+        }
+
+        function flipCard() {
+            document.getElementById('flashcard-box').classList.toggle('flipped');
+        }
+
+        function markFlashcard(action, e) {
+            e.stopPropagation();
+            if (currentFlashcards.length === 0) return;
+
+            const item = currentFlashcards[flashcardIndex];
+
+            if (action === 'Got it') {
+                if (item.status === 'Learning') item.status = 'Reviewing';
+                else if (item.status === 'Reviewing') item.status = 'Mastered';
+            } else {
+                item.status = 'Learning';
+            }
+
+            const target = words.find(w => w.id === item.id);
+            if (target) target.status = item.status;
+
+            saveDataToStorage();
+            renderStats();
+
+            flashcardIndex++;
+            showFlashcard();
+        }
+
+        // Category Manager
+        function openCategoryManagerModal() {
+            renderCategoryManagerList();
+            document.getElementById('category-modal').classList.remove('hidden');
+            toggleToolsMenu();
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('category-modal').classList.add('hidden');
+        }
+
+        function renderCategoryManagerList() {
+            const list = document.getElementById('category-list');
+            list.innerHTML = categories.map((cat, idx) => `
+                <div class="flex items-center justify-between py-2 text-sm text-slate-700 dark:text-slate-200">
+                    <span>${escapeHtml(cat)}</span>
+                    <button onclick="removeCategory(${idx})" class="text-xs text-red-500 hover:text-red-700 transition"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function addCategory() {
+            const input = document.getElementById('new-category-input');
+            const val = input.value.trim();
+            if (val && !categories.includes(val)) {
+                categories.push(val);
+                saveDataToStorage();
+                renderCategories();
+                renderCategoryManagerList();
+                input.value = "";
+            }
+        }
+
+        function removeCategory(idx) {
+            if (categories.length <= 1) {
+                alert("至少需要保留一个分类！");
+                return;
+            }
+            categories.splice(idx, 1);
+            saveDataToStorage();
+            renderCategories();
+            renderCategoryManagerList();
+        }
+
+        function toggleToolsMenu() {
+            document.getElementById('tools-menu').classList.toggle('hidden');
+        }
+
+        // Data Import & Export
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ categories, words }, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `Academic_Lexicon_Backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            toggleToolsMenu();
+        }
+
+        function exportDataCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "Word,Part of Speech,Category,Status,Definition,Collocation,Example\n";
+
+            words.forEach(w => {
+                const row = [
+                    `"${w.word}"`,
+                    `"${w.pos}"`,
+                    `"${w.category}"`,
+                    `"${w.status}"`,
+                    `"${w.meaning.replace(/"/g, '""')}"`,
+                    `"${(w.collocation || '').replace(/"/g, '""')}"`,
+                    `"${(w.example || '').replace(/"/g, '""')}"`
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Academic_Vocabulary_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toggleToolsMenu();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.words && Array.isArray(parsed.words)) {
+                        words = parsed.words;
+                        if (parsed.categories && Array.isArray(parsed.categories)) {
+                            categories = parsed.categories;
+                        }
+                        saveDataToStorage();
+                        renderCategories();
+                        renderStats();
+                        renderWords();
+                        alert("学术词库数据导入成功！");
+                    } else {
+                        alert("备份文件格式不符合要求！");
+                    }
+                } catch (err) {
+                    alert("无法解析该 JSON 文件！");
+                }
+            };
+            reader.readAsText(file);
+            toggleToolsMenu();
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            if (document.documentElement.classList.contains('dark')) {
+                icon.className = "fa-solid fa-sun text-amber-400";
+            } else {
+                icon.className = "fa-solid fa-moon";
+            }
+        }
+
+        function setupOutsideClickHandlers() {
+            window.addEventListener('click', function(e) {
+                const toolsMenu = document.getElementById('tools-menu');
+                if (!toolsMenu.classList.contains('hidden') && !e.target.closest('.relative')) {
+                    toolsMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
